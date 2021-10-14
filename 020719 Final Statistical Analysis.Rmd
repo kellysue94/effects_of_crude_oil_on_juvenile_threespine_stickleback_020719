@@ -1,0 +1,244 @@
+---
+title: "020719 Final Statistical Analysis"
+author: "Kelly Ireland"
+date: "3/2/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Abbreviations used:
+exp - experiment
+dpf - days post fertilization
+snv - snout-vent length
+ed - eye diameter
+sbl - swim bladder length
+sba - swim bladder area
+
+```{r}
+exp <- read.csv("data020719.csv")
+
+exp14 <- exp[which(exp$dpf=="14"),]
+exp28 <- exp[which(exp$dpf=="28"),]
+
+#oil
+oil14 <- exp14[which(exp14$treatment=="oil"),]
+oil28 <- exp28[which(exp28$treatment=="oil"),]
+oil <- exp[which(exp$treatment=="oil"),]
+
+#control
+con14 <- exp14[which(exp14$treatment=="control"),]
+con28 <- exp28[which(exp28$treatment=="control"),]
+control <- exp[which(exp$treatment=="control"),]
+
+str(exp)
+exp$dpf <- as.factor(exp$dpf)
+
+library(ggplot2)
+library(nlme)
+library(predictmeans)
+library(effsize) #calculates cohen d
+library(EMAtools) #calculates cohen d for each effect in nlme
+```
+
+```{r Summary Stats}
+summary <- matrix(nrow=24, ncol=2, dimnames=list(c("OIL SVL 14 DPF", "CONTROL SVL 14", "OIL SVL 28 DPF", "CONTROL SVL 28 DPF", "OIL ED 14 DPF", "CONTROL ED 14 DPF","OIL ED 28 DPF", "CONTROL ED 28 DPF", "OIL SBL 14 DPF", "CONTROL SBL 14 DPF","OIL SBL 28 DPF", "CONTROL SBL 28 DPF","OIL SBA 14 DPF", "CONTROL SBA 14 DPF","OIL SBA 28 DPF","CONTROL SBA 28 DPF", "OIL IL-1B 14 DPF", "CONTROL IL-1B 14 DPF", "OIL IL-1B 28 DPF", "CONTROL IL-1B 28 DPF", "OIL TNF-A 14 DPF", "CONTROL TNF-A 14 DPF", "OIL TNF-A 28 DPF", "CONTROL TNF-A 28 DPF"), c("mean","sd")))
+summary
+
+#SNV
+summary[1,1] <- mean(oil14$snv) #Oil treatment at 14 DPF
+summary[1,2] <- sd(oil14$snv) #Oil treatment at 14 DPF
+summary[2,1] <- mean(con14$snv) #Control treatment at 14 DPF
+summary[2,2] <- sd(con14$snv) #Control treatment at 14 DPF
+summary[3,1] <- mean(oil28$snv) #Oil treatment at 28 DPF
+summary[3,2] <- sd(oil28$snv) #Oil treatment at 28 DPF
+summary[4,1] <- mean(con28$snv) #Control treatment at 28 DPF
+summary[4,2] <- sd(con28$snv) #Control treatment at 28 DPF
+#ED
+summary[5,1] <- mean(oil14$ed)
+summary[5,2] <- sd(oil14$ed)
+summary[6,1] <- mean(con14$ed)
+summary[6,2] <- sd(con14$ed)
+summary[7,1] <- mean(oil28$ed)
+summary[7,2] <- sd(oil28$ed)
+summary[8,1] <- mean(con28$ed)
+summary[8,2] <- sd(con28$ed)
+#SBL
+summary[9,1] <- mean(oil14$sbl) #Oil treatment at 14 DPF
+summary[9,2] <- sd(oil14$sbl) #Oil treatment at 14 DPF
+summary[10,1] <- mean(con14$sbl) #Control treatment at 14 DPF
+summary[10,2] <- sd(con14$sbl) #Control treatment at 14 DPF
+summary[11,1] <- mean(oil28$sbl) #Oil treatment at 28 DPF
+summary[11,2] <- sd(oil28$sbl) #Oil treatment at 28 DPF
+summary[12,1] <- mean(con28$sbl) #Control treatment at 28 DPF
+summary[12,2] <- sd(con28$sbl) #Control treatment at 28 DPF
+#SBA
+summary[13,1] <- mean(oil14$sba) #Oil treatment at 14 DPF
+summary[13,2] <- sd(oil14$sba) #Oil treatment at 14 DPF
+summary[14,1] <- mean(con14$sba) #Control treatment at 14 DPF
+summary[14,2] <- sd(con14$sba) #Control treatment at 14 DPF
+summary[15,1] <- mean(oil28$sba) #Oil treatment at 28 DPF
+summary[15,2] <- sd(oil28$sba) #Oil treatment at 28 DPF
+summary[16,1] <- mean(con28$sba) #Control treatment at 28 DPF
+summary[16,2] <- sd(con28$sba) #Control treatment at 28 DPF
+#IL1B
+summary[17,1] <- mean(oil14$il1brelative_normalized_expression,na.rm=TRUE) #oil 14
+summary[17,2] <- sd(oil14$il1brelative_normalized_expression,na.rm=TRUE) #oil 14
+summary[18,1] <- mean(con14$il1brelative_normalized_expression,na.rm=TRUE) #con 14
+summary[18,2] <- sd(con14$il1brelative_normalized_expression,na.rm=TRUE) #con14
+summary[19,1] <- mean(oil28$il1brelative_normalized_expression,na.rm=TRUE) #oil 28
+summary[19,2] <- sd(oil28$il1brelative_normalized_expression,na.rm=TRUE) #oil 28
+summary[20,1] <- mean(con28$il1brelative_normalized_expression,na.rm=TRUE) #con 28
+summary[20,2] <- sd(con28$il1brelative_normalized_expression,na.rm=TRUE) #con 28
+#TNF
+summary[21,1] <- mean(oil14$tnfrelative_normalized_expression,na.rm=TRUE) #oil 14
+summary[21,2] <- sd(oil14$tnfrelative_normalized_expression,na.rm=TRUE) #oil 14
+summary[22,1] <- mean(con14$tnfrelative_normalized_expression,na.rm=TRUE) #con 14
+summary[22,2] <- sd(con14$tnfrelative_normalized_expression,na.rm=TRUE) #con14
+summary[23,1] <- mean(oil28$tnfrelative_normalized_expression,na.rm=TRUE) #oil 28
+summary[23,2] <- sd(oil28$tnfrelative_normalized_expression,na.rm=TRUE) #oil 28
+summary[24,1] <- mean(con28$tnfrelative_normalized_expression,na.rm=TRUE) #con 28
+summary[24,2] <- sd(con28$tnfrelative_normalized_expression,na.rm=TRUE) #con 28
+
+?mean
+summary
+rdsum <- round(summary, digits=3)
+rdsum
+```
+
+
+```{r Snout Vent Length}
+snvm1 <- lme(snv ~ treatment + dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(snvm1)
+plot(snvm1)
+plot(snvm1,resid(.)~fitted(.))
+qqnorm(snvm1)
+str(exp)
+
+snvm2 <- lme(snv ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(snvm2)
+
+lme.dscore(snvm1, data=exp, type ="nlme")
+
+#significant negative effect of oil treatment on SNV
+#significant positive effect of dpf on SNV
+
+#pull out residuals from linear model and then compare two treatments using variance test 
+#may have more variance in oil because development is complex process and oil could be affecting development in a variety of ways.
+```
+Treatment (negative relationship) and dpf (positive relationship) had significant effect on snv. 
+
+```{r Eye Diameter}
+edm1 <- lme(ed ~ treatment + dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(edm1)
+plot(edm1)
+plot(edm1,resid(.)~fitted(.))
+
+edm2 <- lme(ed ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(edm2)
+
+#cohen-d effect size calculation, but what about considerations for flask, dpf, etc?
+cohen.d(exp$ed,exp$treatment,pooled=TRUE,paired=FALSE,
+na.rm=TRUE, mu=0, hedges.correction=FALSE,
+conf.level=0.95,noncentral=FALSE,
+within=TRUE, subject=NA)
+
+lme.dscore(edm1, data=exp, type ="nlme")
+```
+Dpf has a significant positive effect on eye diameter. Oil treatment has a significant negative relationship on eye diameter. 
+
+```{r correlation betweeen SVL and SBL?}
+x <- exp$snv
+y <- exp$sbl
+cor(x,y,use="complete.obs",method="pearson")
+#correlation not significant
+```
+
+
+```{r Swim Bladder Length}
+sblm1 <- lme(sbl ~ treatment + dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(sblm1)
+plot(sblm1)
+plot(sblm1,resid(.)~fitted(.))
+
+sblm2 <- lme(sbl ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(sblm2)
+
+bartlett.test(sbl ~ treatment, data = exp)
+#no variance between treatments
+
+lme.dscore(sblm1, data=exp, type ="nlme")
+```
+Dpf has a significant positive effect on swim bladder length. Treatment has almost no effect on SBL.
+
+```{r Swim Bladder Area}
+sbam1 <- lme(sba ~ treatment + dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(sbam1)
+plot(sbam1)
+plot(sbam1,resid(.)~fitted(.))
+
+sbam2 <- lme(sba ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp)
+summary(sbam2)
+
+lme.dscore(sbam1, data=exp, type ="nlme")
+```
+Days post fertilization has a positive significant relationship with swim bladder area. Treatment doesn't have a significant effect on sba.  
+
+```{r qrtpcr data read in}
+qexp <- read.csv("020719qrtpcr.csv")
+```
+
+
+```{r IL1B expression}
+il1bm1 <- lme(il1brelative_normalized_expression ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = qexp)
+summary(il1bm1)
+plot(il1bm1)
+plot(il1bm1,resid(.)~fitted(.))
+
+il1bm2 <- lme(il1brelative_normalized_expression ~ treatment + dpf + initial_rna_conc, random =~1 | flask, weights=varIdent(form=~1 | dpf), data=qexp)
+summary(il1bm2)
+
+
+lme.dscore(il1bm1, data=qexp, type ="nlme")
+```
+Significant effect of dpf (positive relationship) and interaction between treatment and oil (negative relationship) on IL1B expression
+
+```{r}
+tnfm1 <- lme(tnfrelative_normalized_expression ~ treatment * dpf, random =~1 | flask, weights=varIdent(form=~1 | dpf), data = exp, na.action = na.omit)
+summary(tnfm1)
+plot(tnfm1)
+plot(tnfm1,resid(.)~fitted(.))
+
+tnfm2 <- lme(tnfrelative_normalized_expression ~ treatment + dpf + initial_rna_conc, random =~1 | flask, weights=varIdent(form=~1 | dpf), data=qexp)
+summary(tnfm2)
+#initial rna concentration does not have significant effect on the expression of tnf
+
+lme.dscore(tnfm1, data=qexp, type ="nlme")
+```
+Significant effect of dpf (positive relationship) and interaction between treatment and dpf (negative relationship) of treatment and oil on IL1B expression. 
+
+```{r separate variances by time? Yes}
+bartlett.test(snv ~ dpf, data = exp)
+bartlett.test(ed ~ dpf, data = exp)
+bartlett.test(sbl ~ dpf, data = exp)
+bartlett.test(sba ~ dpf, data = exp)
+bartlett.test(il1brelative_normalized_expression ~ dpf, data = exp)
+bartlett.test(tnfrelative_normalized_expression ~ dpf, data = exp)
+
+#is there different variances between control and oil at 28 dpf?
+bartlett.test(il1brelative_normalized_expression ~ treatment, data = exp14)
+#highly significant variance at 14 dpf p=0.0007093
+bartlett.test(il1brelative_normalized_expression ~ treatment, data = exp28)
+#highly significant differnt variances p=1.659e-05
+
+bartlett.test(tnfrelative_normalized_expression ~ treatment, data = exp14)
+#significant different variances p=0.001333
+bartlett.test(tnfrelative_normalized_expression ~ treatment, data = exp28)
+#highly significant differnt variances p=2.91e-06
+```
+
+
